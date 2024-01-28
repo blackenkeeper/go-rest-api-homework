@@ -77,7 +77,7 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 }
 
 // Обработчик для POST-запроса с эндпоинтом "/tasks". Используется для добавления новой задачи в список
-func postTask(w http.ResponseWriter, r *http.Request) {
+func createTask(w http.ResponseWriter, r *http.Request) {
 	var task Task
 	var buf bytes.Buffer
 
@@ -120,7 +120,7 @@ func main() {
 
 	r.Get("/tasks", getTasks)
 	r.Get("/tasks/{id}", getTask)
-	r.Post("/tasks", postTask)
+	r.Post("/tasks", createTask)
 	r.Delete("/tasks/{id}", deleteTask)
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
