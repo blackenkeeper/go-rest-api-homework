@@ -44,7 +44,7 @@ var tasks = map[string]Task{
 
 // Обработчик для GET-запроса с эндпоинтом "/tasks". Используется для вывода полного списка задач
 func getTasks(w http.ResponseWriter, r *http.Request) {
-	tasksSerializedInJson, err := json.MarshalIndent(&tasks, "", "    ")
+	tasksInJson, err := json.MarshalIndent(&tasks, "", "    ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -52,7 +52,7 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(tasksSerializedInJson)
+	w.Write(tasksInJson)
 }
 
 // Обработчик для GET-запроса с эндпоинтом "/tasks/{id}". Используется для вывода конкретной задачи по {id}
@@ -65,7 +65,7 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	taskSerializedInJson, err := json.MarshalIndent(task, "", "    ")
+	taskInJson, err := json.MarshalIndent(task, "", "    ")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -73,26 +73,30 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(taskSerializedInJson)
+	w.Write(taskInJson)
 }
 
 // Обработчик для POST-запроса с эндпоинтом "/tasks". Используется для добавления новой задачи в список
 func postTask(w http.ResponseWriter, r *http.Request) {
-	var taskDeserilializedFromRequestBody Task
-	var bufferForRequestBody bytes.Buffer
+	var task Task
+	var buf bytes.Buffer
 
-	_, err := bufferForRequestBody.ReadFrom(r.Body)
+	_, err := buf.ReadFrom(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err = json.Unmarshal(bufferForRequestBody.Bytes(), &taskDeserilializedFromRequestBody); err != nil {
+	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	tasks[taskDeserilializedFromRequestBody.ID] = taskDeserilializedFromRequestBody
+	if _, ok := tasks[task.ID]; ok {
+		http.Error(w, "В списке уже есть артист с таким id", http.StatusBadRequest)
+	}
+
+	tasks[task.ID] = task
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -102,14 +106,12 @@ func postTask(w http.ResponseWriter, r *http.Request) {
 func deleteTask(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	if _, ok := tasks[id]; ok {
-		delete(tasks, id)
-	} else {
-		http.Error(w, "Задачи с таким ID нет в вашем списке", http.StatusNoContent)
+	if _, ok := tasks[id]; !ok {
+		http.Error(w, "Задачи с таким ID нет в вашем списке", http.StatusBadRequest)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	delete(tasks, id)
 	w.WriteHeader(http.StatusOK)
 }
 
